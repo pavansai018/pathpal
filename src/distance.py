@@ -10,26 +10,19 @@ def get_distance():
     trig.value(0)
     utime.sleep_us(5)
     
-    # Send a 10us pulse to trigger the sensor
+    # Send pulse
     trig.value(1)
     utime.sleep_us(10)
     trig.value(0)
     
-    # Wait for the echo pin to go HIGH (start of pulse)
-    while echo.value() == 0:
-        pulse_start = utime.ticks_us()
+    # Measure the pulse duration in microseconds
+    # 30000us (30ms) is the timeout; if no echo, it returns -1 or -2
+    duration = machine.time_pulse_us(echo, 1, 30000)
+    
+    if duration < 0:
+        return None  # This handles the "hanging" issue
         
-    # Wait for the echo pin to go LOW (end of pulse)
-    while echo.value() == 1:
-        pulse_end = utime.ticks_us()
-    
-    # Calculate the duration of the pulse
-    pulse_duration = utime.ticks_diff(pulse_end, pulse_start)
-    
-    # Distance = (time * speed of sound) / 2 (for the round trip)
-    # Speed of sound is approx 0.0343 cm per microsecond
-    distance = (pulse_duration * 0.0343) / 2
-    
+    distance = (duration * 0.0343) / 2
     return distance
 
 # Main Loop
@@ -38,11 +31,14 @@ print("PathPal: Starting Distance Measurement...")
 while True:
     try:
         dist = get_distance()
-        print("Distance: {:.2f} cm".format(dist))
+        if dist is None:
+            continue
+        else:
+            print("Distance: {:.2f} cm".format(dist))
         
-        # Logic for PathPal Alert
-        if dist < 30:
-            print("ALERT: Obstacle very close!")
+            # Logic for PathPal Alert
+            if dist < 30:
+                print("ALERT: Obstacle very close!")
             
         utime.sleep(0.5) # Wait half a second between readings
         
