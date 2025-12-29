@@ -1,0 +1,5 @@
+
+# on rpi
+rpicam-vid -t 0 --inline --listen --width 640 --height 480 --framerate 15 -o tcp://0.0.0.0:8554
+# on local laptop
+ffplay -fflags nobuffer -flags low_delay -framedrop -strict experimental tcp://<rpi_ip>:8554
