@@ -3,3 +3,13 @@
 rpicam-vid -t 0 --inline --listen --width 640 --height 480 --framerate 15 -o tcp://0.0.0.0:8554
 # on local laptop
 ffplay -fflags nobuffer -flags low_delay -framedrop -strict experimental tcp://<rpi_ip>:8554
+
+# adding new wifi connection
+sudo nmcli con add type wifi ifname wlan0 con-name "CollegeWiFi" ssid "COLLEGE_SSID_HERE" -- wifi-sec.key-mgmt wpa-eap 802-1x.eap peap 802-1x.phase2-auth mschapv2 802-1x.identity "YOUR_STUDENT_ID" 802-1x.password "YOUR_PASSWORD"
+
+# connect to newly added wifi
+sudo nmcli con up "CollegeWiFi"
+
+# show connected wifi
+sudo nmcli connection show
+
