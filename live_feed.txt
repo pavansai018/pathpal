@@ -13,3 +13,6 @@ sudo nmcli con up "CollegeWiFi"
 # show connected wifi
 sudo nmcli connection show
 
+# for personal wifi connection
+sudo nmcli con add type wifi ifname wlan0 con-name "MyHomeWiFi" ssid "YOUR_SSID_HERE" -- wifi-sec.key-mgmt wpa-psk wifi-sec.psk "YOUR_PASSWORD_HERE"
+sudo nmcli con up "MyHomeWiFi"
