@@ -15,3 +15,10 @@ FPS = 15
 
 # runtime settings
 INTERPRETER_MODE = 'runtime'
+
+# Stream settings
+ENABLE_STREAM = True
+STREAM_HOST = '0.0.0.0'
+STREAM_PORT = 8080
+STREAM_JPEG_QUALITY = 70
+STREAM_FPS = 5.0

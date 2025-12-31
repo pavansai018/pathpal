@@ -5,7 +5,7 @@ import cv2
 from module import Module
 from camera import Camera
 from coco_detector import CocoModule
-from utils import side_from_bbox, render_display
+from utils import side_from_bbox, render_display, annotate_bgr
 from det import Det
 from face_module import FaceModule
 from event_policy import EventPolicy
@@ -40,7 +40,17 @@ def main() -> None:
     ]
 
     events = EventPolicy(cooldown_s=2.0)
-
+    streamer = None
+    if variables.ENABLE_STREAM:
+        from mjpeg_streamer import MjpegStreamer
+        streamer = MjpegStreamer(
+            host=variables.STREAM_HOST,
+            port=variables.STREAM_PORT,
+            jpeg_quality=variables.STREAM_JPEG_QUALITY,
+            stream_fps=variables.STREAM_FPS,
+        )
+        streamer.start()
+        print(f"[INFO] MJPEG: http://10.32.30.165:{variables.STREAM_PORT}/stream.mjpg")
     try:
         while True:
             frame = cam.read()
@@ -74,12 +84,16 @@ def main() -> None:
             if ENABLE_DISPLAY:
                 if not render_display(frame, persons, faces, WINDOW_NAME):
                     break
-
+            # Stream to laptop
+            if streamer is not None and streamer.has_clients():
+                bgr_annot = annotate_bgr(frame, persons, faces)  # frame is RGB
+                streamer.update_bgr(bgr_annot)
     finally:
         cam.close()
         if ENABLE_DISPLAY:
             cv2.destroyAllWindows()
-
+        if streamer is not None:
+            streamer.stop()
 
 if __name__ == "__main__":
     main()

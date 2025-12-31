@@ -115,3 +115,73 @@ def render_display(
 
     cv2.imshow(window_name, frame_bgr)
     return (cv2.waitKey(1) & 0xFF) != ord("q")
+
+
+def _clamp_bbox(b: Tuple[int, int, int, int], w: int, h: int) -> Tuple[int, int, int, int]:
+    x1, y1, x2, y2 = b
+    x1 = max(0, min(w - 1, x1))
+    x2 = max(0, min(w - 1, x2))
+    y1 = max(0, min(h - 1, y1))
+    y2 = max(0, min(h - 1, y2))
+    if x2 < x1:
+        x1, x2 = x2, x1
+    if y2 < y1:
+        y1, y2 = y2, y1
+    return x1, y1, x2, y2
+
+
+def annotate_bgr(
+    frame_rgb: np.ndarray,
+    persons: List[Det],
+    faces: List[Det],
+) -> np.ndarray:
+    """
+    Returns BGR image with boxes + labels drawn.
+    """
+    h, w, _ = frame_rgb.shape
+    frame_bgr = frame_rgb #cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+
+    # PERSON boxes (yellow)
+    for d in persons:
+        x1, y1, x2, y2 = _clamp_bbox(d.bbox, w, h)
+        cv2.rectangle(frame_bgr, (x1, y1), (x2, y2), (0, 255, 255), 2)
+        cv2.putText(
+            frame_bgr,
+            f"{d.label} {d.score:.2f}",
+            (x1, max(20, y1 - 8)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (0, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+
+    # FACE boxes (cyan)
+    for d in faces:
+        x1, y1, x2, y2 = _clamp_bbox(d.bbox, w, h)
+        cv2.rectangle(frame_bgr, (x1, y1), (x2, y2), (255, 255, 0), 2)
+        cv2.putText(
+            frame_bgr,
+            f"face {d.score:.2f}",
+            (x1, max(20, y1 - 8)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (255, 255, 0),
+            2,
+            cv2.LINE_AA,
+        )
+
+    # Status line
+    status = "PERSON: YES" if persons else "PERSON: NO"
+    cv2.putText(
+        frame_bgr,
+        status,
+        (10, 30),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.9,
+        (0, 255, 0),
+        2,
+        cv2.LINE_AA,
+    )
+
+    return frame_bgr
