@@ -16,3 +16,10 @@ sudo nmcli connection show
 # for personal wifi connection
 sudo nmcli con add type wifi ifname wlan0 con-name "MyHomeWiFi" ssid "YOUR_SSID_HERE" -- wifi-sec.key-mgmt wpa-psk wifi-sec.psk "YOUR_PASSWORD_HERE"
 sudo nmcli con up "MyHomeWiFi"
+
+# To copy a single file from your local machine to a remote device:
+scp /path/to/local/file.txt username@remote_host_ip:/path/to/remote/directory/
+#To copy an entire folder and its contents, you must include the -r (recursive) option: 
+scp -r /path/to/local/folder username@remote_host_ip:/path/to/remote/directory/
+#You can also use scp to download files or folders from the remote device to your local machine. The syntax is simply reversed
+scp -r username@remote_host_ip:/path/to/remote/folder /path/to/local/directory/
