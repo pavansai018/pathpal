@@ -13,3 +13,5 @@ CAM_WIDTH = 320
 CAM_HEIGHT = 240
 FPS = 15
 
+# runtime settings
+INTERPRETER_MODE = 'runtime'

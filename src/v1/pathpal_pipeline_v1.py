@@ -16,9 +16,9 @@ import variables
 def main() -> None:
     ENABLE_DISPLAY = variables.ENABLE_DISPLAY
     WINDOW_NAME = variables.WINDOW_NAME
-
-    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(WINDOW_NAME, width=variables.DISPLAY_WIDTH, height=variables.DISPLAY_HEIGHT) 
+    if ENABLE_DISPLAY:
+        cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(WINDOW_NAME, width=variables.DISPLAY_WIDTH, height=variables.DISPLAY_HEIGHT) 
     
     COCO_MODEL = variables.COCO_SSD_MOBILENET_V1_PATH
     COCO_LABELS = variables.COCO_LABELS_PATH

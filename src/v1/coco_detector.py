@@ -5,7 +5,7 @@ from module import Module
 from labels import load_labels
 import numpy as np
 from det import Det
-
+import variables
 
 
 class CocoModule(Module):
@@ -42,7 +42,7 @@ class CocoDetector:
     def __init__(self, model_path: str, labels: List[str], score_thresh: float = 0.4) -> None:
         self.labels = labels
         self.score_thresh = score_thresh
-        self.interp = make_interpreter(model_path, num_threads=2, force=None)  # or "tf" or "runtime"
+        self.interp = make_interpreter(model_path, num_threads=2, force=variables.INTERPRETER_MODE)  # or "tf" or "runtime"
         self.interp.allocate_tensors()
 
         self.in_details = self.interp.get_input_details()[0]

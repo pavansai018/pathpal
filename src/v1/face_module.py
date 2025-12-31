@@ -12,7 +12,7 @@ try:
 except Exception as e:
     print(e)
 # Face detector (BlazeFace style via face-detection-tflite)
-from fdlite import FaceDetection, FaceDetectionModel
+from vendor_fdlite import FaceDetection, FaceDetectionModel
 class FaceModule(Module):
     name = "face"
     hz = 2.5  # 2–3 FPS, but gated
