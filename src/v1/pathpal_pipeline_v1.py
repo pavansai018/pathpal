@@ -67,7 +67,7 @@ def main() -> None:
             h, w, _ = frame.shape
             persons: List[Det] = state.get("persons", [])
             faces: List[Det] = state.get("faces", [])
-
+            persons = [person for person in persons if person.score > variables.PERSON_CONFIDENCE_THRESHOLD]
             if persons:
                 # pick largest person
                 p = max(persons, key=lambda d: (d.bbox[2]-d.bbox[0])*(d.bbox[3]-d.bbox[1]))
