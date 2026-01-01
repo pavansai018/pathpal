@@ -46,3 +46,4 @@ def nms_dets(dets: List[Det], iou_thresh: float = variables.COCO_NMS_THRESH) -> 
     if variables.DEBUG:
         print(f'Before NMS: {len(dets)} objects. After NMS: {len(out)} objects.')
     return out
+
