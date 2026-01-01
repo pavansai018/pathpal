@@ -46,15 +46,15 @@ class CocoDetector:
         self.interp.allocate_tensors()
 
         self.in_details = self.interp.get_input_details()[0]
+        # print("[IN]", self.in_details["dtype"], self.in_details.get("quantization"), self.in_details.get("quantization_parameters"))
         self.out_details = self.interp.get_output_details()
 
         # input shape: [1, H, W, 3]
         _, self.in_h, self.in_w, _ = self.in_details["shape"]
 
     def _preprocess(self, rgb: np.ndarray) -> np.ndarray:
-        img = Image.fromarray(rgb).resize((self.in_w, self.in_h))
-        x = np.asarray(img, dtype=np.uint8)
-
+        img = Image.fromarray(rgb).resize((self.in_w, self.in_h), resample=Image.BILINEAR)
+        x = np.ascontiguousarray(np.asarray(img, dtype=np.uint8))
         # Handle float inputs if model expects float32
         if self.in_details["dtype"] == np.float32:
             x = x.astype(np.float32) / 255.0
