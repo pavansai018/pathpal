@@ -24,7 +24,8 @@ def main() -> None:
     COCO_LABELS = variables.COCO_LABELS_PATH
 
     cam = Camera(size=(variables.CAM_WIDTH, variables.CAM_HEIGHT), fps=variables.FPS)
-    print(f"[INFO] Camera backend: {cam.backend}")
+    if variables.DEBUG:
+        print(f"[INFO] Camera backend: {cam.backend}")
 
     state: Dict[str, Any] = {
         'coco_dets': [],
@@ -50,7 +51,8 @@ def main() -> None:
             stream_fps=variables.STREAM_FPS,
         )
         streamer.start()
-        print(f"[INFO] MJPEG: http://10.32.30.165:{variables.STREAM_PORT}/view")
+        if variables.DEBUG:
+            print(f"[INFO] MJPEG: http://10.32.30.165:{variables.STREAM_PORT}/view")
     try:
         while True:
             frame = cam.read()

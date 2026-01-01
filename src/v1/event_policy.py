@@ -1,5 +1,7 @@
 from typing import Optional
 import time
+import variables
+
 # -----------------------------
 # Event policy (no spam)
 # -----------------------------
@@ -15,6 +17,7 @@ class EventPolicy:
             return
         if (now - self.last_t) < self.cooldown_s:
             return
-        print(msg)
+        if variables.DEBUG:
+            print(msg)
         self.last_msg = msg
         self.last_t = now

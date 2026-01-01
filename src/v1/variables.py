@@ -32,6 +32,7 @@ COCO_THRESHOLDS = {
 
 }
 DEBUG_TOP_N = 10
+COCO_NMS_THRESH = 0.45
 
 # intrested labels
 WANTED_LABELS = {
@@ -44,3 +45,6 @@ WANTED_LABELS = {
     'bottle',
     'cell phone'
 }
+
+# debug statements
+DEBUG = True

@@ -6,7 +6,7 @@ from labels import load_labels
 import numpy as np
 from det import Det
 import variables
-
+import nms
 
 class CocoModule(Module):
     name = "coco"
@@ -19,7 +19,8 @@ class CocoModule(Module):
 
     def process(self, frame: np.ndarray, state: Dict[str, Any]) -> None:
         dets = self.det.infer(frame)
-        print("[DEBUG] top:", [(d.label, round(d.score, 2)) for d in sorted(dets, key=lambda x: x.score, reverse=True)[:variables.DEBUG_TOP_N]])
+        if variables.DEBUG:
+            print("[DEBUG] top:", [(d.label, round(d.score, 2)) for d in sorted(dets, key=lambda x: x.score, reverse=True)[:variables.DEBUG_TOP_N]])
 
         # Keep only relevant classes for now; later you can widen this list
         wanted = variables.WANTED_LABELS
@@ -46,7 +47,8 @@ class CocoDetector:
         self.interp.allocate_tensors()
 
         self.in_details = self.interp.get_input_details()[0]
-        # print("[IN]", self.in_details["dtype"], self.in_details.get("quantization"), self.in_details.get("quantization_parameters"))
+        if variables.DEBUG:
+            print("[IN]", self.in_details["dtype"], self.in_details.get("quantization"), self.in_details.get("quantization_parameters"))
         self.out_details = self.interp.get_output_details()
 
         # input shape: [1, H, W, 3]
@@ -129,4 +131,5 @@ class CocoDetector:
             x2 = int(xmax * w)
             y2 = int(ymax * h)
             dets.append(Det(label=label, score=float(scores[i]), bbox=(x1, y1, x2, y2)))
+        dets = nms.nms_dets(dets=dets, iou_thresh=variables.COCO_NMS_THRESH)
         return dets
