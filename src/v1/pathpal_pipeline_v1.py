@@ -50,7 +50,7 @@ def main() -> None:
             stream_fps=variables.STREAM_FPS,
         )
         streamer.start()
-        print(f"[INFO] MJPEG: http://10.32.30.165:{variables.STREAM_PORT}/stream.mjpg")
+        print(f"[INFO] MJPEG: http://10.32.30.165:{variables.STREAM_PORT}/view")
     try:
         while True:
             frame = cam.read()
