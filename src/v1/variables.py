@@ -28,6 +28,7 @@ COCO_DEFAULT_THRESH = 0.45
 COCO_THRESHOLDS = {
     'person': 0.55,
     'bottle': 0.2,
+    'mouse': 0.2,
 
 }
 DEBUG_TOP_N = 10
