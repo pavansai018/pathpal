@@ -27,10 +27,10 @@ def main() -> None:
     print(f"[INFO] Camera backend: {cam.backend}")
 
     state: Dict[str, Any] = {
-        "coco_dets": [],
-        "faces": [],
-        "person_present": False,
-        "persons": [],
+        'coco_dets': [],
+        'faces': [],
+        'person_present': False,
+        'persons': []
     }
 
     modules: List[Module] = [
@@ -65,9 +65,8 @@ def main() -> None:
 
             # Simple demo events
             h, w, _ = frame.shape
-            persons: List[Det] = state.get("persons", [])
-            faces: List[Det] = state.get("faces", [])
-            persons = [person for person in persons if person.score > variables.PERSON_CONFIDENCE_THRESHOLD]
+            persons: List[Det] = state.get('persons', [])
+            faces: List[Det] = state.get('faces', [])
             if persons:
                 # pick largest person
                 p = max(persons, key=lambda d: (d.bbox[2]-d.bbox[0])*(d.bbox[3]-d.bbox[1]))
@@ -82,11 +81,11 @@ def main() -> None:
             # ===== LIVE PREVIEW (laptop) =====
             # Your Camera.read() returns RGB. OpenCV expects BGR for display.
             if ENABLE_DISPLAY:
-                if not render_display(frame, persons, faces, WINDOW_NAME):
+                if not render_display(frame_rgb=frame, persons=state.get('coco_dets', []), faces=faces, window_name=WINDOW_NAME):
                     break
             # Stream to laptop
             if streamer is not None and streamer.has_clients():
-                bgr_annot = annotate_bgr(frame, persons, faces)  # frame is RGB
+                bgr_annot = annotate_bgr(frame_rgb=frame, persons=state.get('coco_dets', []), faces=faces)  # frame is RGB
                 streamer.update_bgr(bgr_annot)
     finally:
         cam.close()

@@ -15,21 +15,21 @@ class CocoModule(Module):
     def __init__(self, model_path: str, labels_path: str) -> None:
         super().__init__()
         labels = load_labels(labels_path)
-        self.det = CocoDetector(model_path=model_path, labels=labels, score_thresh=0.45)
+        self.det = CocoDetector(model_path=model_path, labels=labels, score_thresh=variables.COCO_DEFAULT_THRESH)
 
     def process(self, frame: np.ndarray, state: Dict[str, Any]) -> None:
         dets = self.det.infer(frame)
-        print("[DEBUG] top:", [(d.label, round(d.score, 2)) for d in sorted(dets, key=lambda x: x.score, reverse=True)[:5]])
+        print("[DEBUG] top:", [(d.label, round(d.score, 2)) for d in sorted(dets, key=lambda x: x.score, reverse=True)[:variables.DEBUG_TOP_N]])
 
         # Keep only relevant classes for now; later you can widen this list
-        wanted = {"person", "car", "bus", "truck", "bicycle", "motorcycle"}
-        dets = [d for d in dets if d.label in wanted]
+        wanted = variables.WANTED_LABELS
+        # dets = [d for d in dets if d.label in wanted]
         state["coco_dets"] = dets
 
         # “person present” summary for gating
-        persons = [d for d in dets if d.label == "person"]
-        state["person_present"] = len(persons) > 0
-        state["persons"] = persons
+        persons = [d for d in dets if d.label == 'person']
+        state['person_present'] = len(persons) > 0
+        state['persons'] = persons
 # -----------------------------
 # TFLite COCO detector wrapper
 # -----------------------------
@@ -103,14 +103,24 @@ class CocoDetector:
         dets: List[Det] = []
         n = min(num, len(scores))
         for i in range(n):
-            if float(scores[i]) < self.score_thresh:
-                continue
+            score = float(scores[i])
+            # if float(scores[i]) < self.score_thresh:
+            #     continue
+            # cls_raw = int(classes[i])
+            # if i < 5:
+            #     print("[DBG]", "cls_raw=", cls_raw,
+            #         "labels[cls_raw]=", self.labels[cls_raw] if 0 <= cls_raw < len(self.labels) else "OOB",
+            #         "labels[cls_raw+1]=", self.labels[cls_raw+1] if 0 <= cls_raw+1 < len(self.labels) else "OOB",
+            #         "score=", float(scores[i]))
             cls = int(classes[i])
-            label = self.labels[cls] if 0 <= cls < len(self.labels) else f"class_{cls}"
-
+            # label = self.labels[cls] if 0 <= cls < len(self.labels) else f"class_{cls}"
+            label = self.labels[cls + 1] if 0 <= (cls + 1) < len(self.labels) else f"class_{cls}"
+            threshold = variables.COCO_THRESHOLDS.get(label, variables.COCO_DEFAULT_THRESH)
+            if score < threshold:
+                continue
             # FIX: common SSD label offset where labels[0] is '???'/'background'
-            if label in {"???", "background"} and (cls + 1) < len(self.labels):
-                label = self.labels[cls + 1]
+            # if label in {"???", "background"} and (cls + 1) < len(self.labels):
+            #     label = self.labels[cls + 1]
 
             # boxes are usually [ymin, xmin, ymax, xmax] normalized
             ymin, xmin, ymax, xmax = [float(v) for v in boxes[i]]

@@ -24,4 +24,22 @@ STREAM_JPEG_QUALITY = 70
 STREAM_FPS = 5.0
 
 # confidence threshold
-PERSON_CONFIDENCE_THRESHOLD = 0.5
+COCO_DEFAULT_THRESH = 0.45
+COCO_THRESHOLDS = {
+    'person': 0.55,
+    'bottle': 0.2,
+
+}
+DEBUG_TOP_N = 10
+
+# intrested labels
+WANTED_LABELS = {
+    'person',
+    'car',
+    'bus',
+    'truck',
+    'bicycle',
+    'motorcycle',
+    'bottle',
+    'cell phone'
+}
