@@ -6,6 +6,10 @@ DISPLAY_HEIGHT = 720
 
 # models path
 COCO_SSD_MOBILENET_V1_PATH = 'models/coco_ssd_mobilenet_v1_1.0_quant_2018_06_29/detect.tflite'
+COCO_SSD_MOBILENET_V3_LARGE_PATH = 'models/ssd_mobilenet_v3_large_coco_2020_01_14/model.tflite'
+EFFICIENTDET_V0_PATH = 'models/efficientdet/lite-model_efficientdet_lite0_detection_metadata_1.tflite'
+EFFICIENTDET_V1_PATH = 'models/efficientdet/lite-model_efficientdet_lite1_detection_metadata_1.tflite'
+EFFICIENTDET_V2_PATH = 'models/efficientdet/lite-model_efficientdet_lite2_detection_metadata_1.tflite'
 COCO_LABELS_PATH = 'models/coco_ssd_mobilenet_v1_1.0_quant_2018_06_29/labelmap.txt'
 
 # camera settings

@@ -20,7 +20,7 @@ def main() -> None:
         cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
         cv2.resizeWindow(WINDOW_NAME, width=variables.DISPLAY_WIDTH, height=variables.DISPLAY_HEIGHT) 
     
-    COCO_MODEL = variables.COCO_SSD_MOBILENET_V1_PATH
+    COCO_MODEL = variables.EFFICIENTDET_V2_PATH
     COCO_LABELS = variables.COCO_LABELS_PATH
 
     cam = Camera(size=(variables.CAM_WIDTH, variables.CAM_HEIGHT), fps=variables.FPS)

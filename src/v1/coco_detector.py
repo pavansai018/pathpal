@@ -47,10 +47,12 @@ class CocoDetector:
         self.interp.allocate_tensors()
 
         self.in_details = self.interp.get_input_details()[0]
+        self.out_details = self.interp.get_output_details()
         if variables.DEBUG:
             print("[IN]", self.in_details["dtype"], self.in_details.get("quantization"), self.in_details.get("quantization_parameters"))
-        self.out_details = self.interp.get_output_details()
-
+            print("[OUT DETAILS]")
+            for i, d in enumerate(self.out_details):
+                print(i, d["name"], d["shape"], d["dtype"])
         # input shape: [1, H, W, 3]
         _, self.in_h, self.in_w, _ = self.in_details["shape"]
 
@@ -58,11 +60,35 @@ class CocoDetector:
         img = Image.fromarray(rgb).resize((self.in_w, self.in_h), resample=Image.BILINEAR)
         x = np.ascontiguousarray(np.asarray(img, dtype=np.uint8))
         # Handle float inputs if model expects float32
-        if self.in_details["dtype"] == np.float32:
-            x = x.astype(np.float32) / 255.0
+        in_dtype = self.in_details["dtype"]
+        scale, zero = self.in_details.get("quantization", (0.0, 0))
 
-        x = np.expand_dims(x, axis=0)
-        return x
+        # Float model
+        if in_dtype == np.float32:
+            x = x.astype(np.float32) / 255.0
+            return np.expand_dims(x, axis=0)
+
+        # Quantized model (uint8 or int8)
+        if scale is None or scale == 0:
+            # fallback: just cast
+            q = x.astype(in_dtype)
+            return np.expand_dims(q, axis=0)
+
+        # IMPORTANT:
+        # Most TFLite detection models quantize *normalized* input (commonly [-1,1] or [0,1]).
+        # We try [-1,1] first because many edge detectors use it.
+        xf = (x.astype(np.float32) - 127.5) / 127.5  # -> [-1, 1]
+
+        q = np.round(xf / scale + zero)
+
+        if in_dtype == np.uint8:
+            q = np.clip(q, 0, 255).astype(np.uint8)
+        elif in_dtype == np.int8:
+            q = np.clip(q, -128, 127).astype(np.int8)
+        else:
+            q = q.astype(in_dtype)
+
+        return np.expand_dims(q, axis=0)
 
     def infer(self, frame_rgb: np.ndarray) -> List[Det]:
         h, w, _ = frame_rgb.shape
@@ -75,6 +101,12 @@ class CocoDetector:
         outs = [self.interp.get_tensor(d["index"]) for d in self.out_details]
         # Make robust to minor variations
         outs = [o.squeeze() for o in outs]
+        if len(outs) != 4:
+            raise RuntimeError(
+                f"Model outputs {len(outs)} tensors (expected 4). "
+                f"This model likely has no TFLite postprocess. "
+                f"Out details: {[d['shape'] for d in self.out_details]}"
+            )
 
         # Heuristic mapping
         boxes = None

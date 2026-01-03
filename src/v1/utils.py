@@ -106,12 +106,12 @@ def render_display(
         draw_labeled_box(d, (255, 255, 0))
 
     # Status header with background
-    status = "PERSON: YES" if persons else "PERSON: NO"
-    header = f"{status} | persons={len(persons)} faces={len(faces)}"
-    (tw, th), baseline = cv2.getTextSize(header, font, 0.8 * scale, thickness)
-    bar_h = th + baseline + 2 * pad
-    cv2.rectangle(frame_bgr, (0, 0), (min(w - 1, tw + 2 * pad), bar_h), (0, 255, 0), -1)
-    cv2.putText(frame_bgr, header, (pad, bar_h - pad - baseline), font, 0.8 * scale, (0, 0, 0), thickness, cv2.LINE_AA)
+    # status = "PERSON: YES" if persons else "PERSON: NO"
+    # header = f"{status} | persons={len(persons)} faces={len(faces)}"
+    # (tw, th), baseline = cv2.getTextSize(header, font, 0.8 * scale, thickness)
+    # bar_h = th + baseline + 2 * pad
+    # cv2.rectangle(frame_bgr, (0, 0), (min(w - 1, tw + 2 * pad), bar_h), (0, 255, 0), -1)
+    # cv2.putText(frame_bgr, header, (pad, bar_h - pad - baseline), font, 0.8 * scale, (0, 0, 0), thickness, cv2.LINE_AA)
 
     cv2.imshow(window_name, frame_bgr)
     return (cv2.waitKey(1) & 0xFF) != ord("q")
@@ -172,16 +172,16 @@ def annotate_bgr(
         )
 
     # Status line
-    status = "PERSON: YES" if persons else "PERSON: NO"
-    cv2.putText(
-        frame_bgr,
-        status,
-        (10, 30),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.9,
-        (0, 255, 0),
-        2,
-        cv2.LINE_AA,
-    )
+    # status = "PERSON: YES" if persons else "PERSON: NO"
+    # cv2.putText(
+    #     frame_bgr,
+    #     status,
+    #     (10, 30),
+    #     cv2.FONT_HERSHEY_SIMPLEX,
+    #     0.9,
+    #     (0, 255, 0),
+    #     2,
+    #     cv2.LINE_AA,
+    # )
 
     return frame_bgr
