@@ -126,10 +126,11 @@ def render_display(
             (0, 255, 0),
             2,
         )
-    if fps_loop is not None:
-        cv2.putText(
+    fps_loop_s = f"{fps_loop:.1f}" if fps_loop is not None else '--'
+    fps_det_s  = f"{fps_det:.1f}"  if fps_det  is not None else '--'
+    cv2.putText(
             frame_bgr,
-            f'FPS: {fps_loop:.1f}  DET: {fps_det:.1f}',
+            f'FPS: {fps_loop_s}  DET: {fps_det_s}',
             (10, 90),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
@@ -221,10 +222,11 @@ def annotate_bgr(
             (0, 255, 0),
             2,
         )
-    if fps_loop is not None:
-        cv2.putText(
+    fps_loop_s = f"{fps_loop:.1f}" if fps_loop is not None else '--'
+    fps_det_s  = f"{fps_det:.1f}"  if fps_det  is not None else '--'
+    cv2.putText(
             frame_bgr,
-            f'FPS: {fps_loop:.1f}  DET: {fps_det:.1f}',
+            f'FPS: {fps_loop_s}  DET: {fps_det_s}',
             (10, 90),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
