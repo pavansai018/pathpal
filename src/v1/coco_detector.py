@@ -5,6 +5,7 @@ from module import Module
 from labels import load_labels
 import numpy as np
 from det import Det
+import cv2
 import variables
 import nms
 
@@ -43,7 +44,7 @@ class CocoDetector:
     def __init__(self, model_path: str, labels: List[str], score_thresh: float = 0.4) -> None:
         self.labels = labels
         self.score_thresh = score_thresh
-        self.interp = make_interpreter(model_path, num_threads=2, force=variables.INTERPRETER_MODE)  # or "tf" or "runtime"
+        self.interp = make_interpreter(model_path, num_threads=variables.TFLITE_THREADS, force=variables.INTERPRETER_MODE)  # or "tf" or "runtime"
         self.interp.allocate_tensors()
 
         self.in_details = self.interp.get_input_details()[0]
@@ -57,7 +58,8 @@ class CocoDetector:
         _, self.in_h, self.in_w, _ = self.in_details["shape"]
 
     def _preprocess(self, rgb: np.ndarray) -> np.ndarray:
-        img = Image.fromarray(rgb).resize((self.in_w, self.in_h), resample=Image.BILINEAR)
+        # img = Image.fromarray(rgb).resize((self.in_w, self.in_h), resample=Image.BILINEAR)
+        img = cv2.resize(rgb, (self.in_w, self.in_h), interpolation=cv2.INTER_LINEAR)
         x = np.ascontiguousarray(np.asarray(img, dtype=np.uint8))
         # Handle float inputs if model expects float32
         in_dtype = self.in_details["dtype"]
