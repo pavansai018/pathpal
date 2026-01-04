@@ -1,6 +1,6 @@
 from __future__ import annotations
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 import cv2
 from module import Module
 from camera import Camera
@@ -10,8 +10,16 @@ from det import Det
 from face_module import FaceModule
 from event_policy import EventPolicy
 import variables
+from frame_grabber import FrameGrabber
+if variables.ENABLE_FPS:
+    from collections import deque
+if variables.ENABLE_ULTRASONIC:
+    from ultrasonic_module import UltrasonicModule
 
-
+def fps_from_times(times):
+    if not times:
+        return 0.0
+    return len(times) / sum(times)
 
 def main() -> None:
     ENABLE_DISPLAY = variables.ENABLE_DISPLAY
@@ -26,19 +34,27 @@ def main() -> None:
     cam = Camera(size=(variables.CAM_WIDTH, variables.CAM_HEIGHT), fps=variables.FPS)
     if variables.DEBUG:
         print(f"[INFO] Camera backend: {cam.backend}")
-
+    grabber = FrameGrabber(cam, target_fps=variables.TARGET_FRAME_GRABBER_FPS, copy_frame=False)
+    grabber.start()
     state: Dict[str, Any] = {
         'coco_dets': [],
         'faces': [],
         'person_present': False,
         'persons': []
     }
-
-    modules: List[Module] = [
+    modules: List[Module] = []
+    if variables.ENABLE_ULTRASONIC:
+        modules.append(UltrasonicModule())
+    modules.extend([
         CocoModule(COCO_MODEL, COCO_LABELS),
         FaceModule(),
         # Later: add new modules here (OCRModule, MotionHazardModule, etc.)
-    ]
+    ])   
+    # modules: List[Module] = [
+    #     CocoModule(COCO_MODEL, COCO_LABELS),
+    #     FaceModule(),
+    #     # Later: add new modules here (OCRModule, MotionHazardModule, etc.)
+    # ]
 
     events = EventPolicy(cooldown_s=2.0)
     streamer = None
@@ -54,23 +70,44 @@ def main() -> None:
         if variables.DEBUG:
             print(f"[INFO] MJPEG: http://10.32.30.165:{variables.STREAM_PORT}/view")
     try:
+        if variables.ENABLE_FPS:
+            loop_times = deque(maxlen=30)
+            det_times = deque(maxlen=10)
+        last_ts = 0.0
         while True:
-            frame = cam.read()
+            loop_fps = None
+            det_fps = None
+            if variables.ENABLE_FPS:
+                loop_start = time.time()
+            frame, ts = grabber.get_latest()
+            # No frame yet
             if frame is None:
-                break
-
+                time.sleep(0.01)
+                continue
+            # if we already processed this frame, skip it
+            if ts == last_ts:
+                time.sleep(0.002)
+                continue
+            last_ts = ts
+            
             now = time.time()
+            state['now_ts'] = now  # useful for sensor modules
+
             for m in modules:
                 if m.should_run(now):
+                    t0 = time.time()
                     m.process(frame, state)
                     m.mark_ran(now)
+                    if m.name == 'coco':
+                        det_times.append(time.time() - t0)
 
             # Simple demo events
             h, w, _ = frame.shape
             persons: List[Det] = state.get('persons', [])
             faces: List[Det] = state.get('faces', [])
+
+            # ---- existing person/face events (keep as-is if you want) ----
             if persons:
-                # pick largest person
                 p = max(persons, key=lambda d: (d.bbox[2]-d.bbox[0])*(d.bbox[3]-d.bbox[1]))
                 events.emit(f"[EVENT] person on {side_from_bbox(p.bbox, w)}")
             else:
@@ -80,16 +117,82 @@ def main() -> None:
                 f = max(faces, key=lambda d: (d.bbox[2]-d.bbox[0])*(d.bbox[3]-d.bbox[1]))
                 events.emit(f"[EVENT] face on {side_from_bbox(f.bbox, w)}")
 
+            # ---- NEW: ultrasonic + vision fusion ----
+            range_cm = state.get('range_cm', None)
+            dets: List[Det] = state.get('coco_dets', [])
+
+            # choose which detection drives direction (controlled via variables.py)
+            direction = variables.TARGET_DIRECTION
+            target: Optional[Det] = None
+
+            if dets:
+                # 1) try priority labels in order
+                for lbl in getattr(variables, 'RANGE_DIR_PRIORIT', ['person']):
+                    candidates = [d for d in dets if d.label == lbl]
+                    if candidates:
+                        target = max(
+                            candidates,
+                            key=lambda d: (d.bbox[2]-d.bbox[0])*(d.bbox[3]-d.bbox[1])
+                        )
+                        break
+
+                # 2) fallback logic
+                if target is None:
+                    fb = getattr(variables, 'RANGE_DIR_FALLBACK', 'largest_any')
+                    if fb == 'largest_any':
+                        target = max(
+                            dets,
+                            key=lambda d: (d.bbox[2]-d.bbox[0])*(d.bbox[3]-d.bbox[1])
+                        )
+                    elif fb == 'center_only':
+                        target = None
+                        direction = 'center'
+                    elif fb == 'none':
+                        target = None
+
+            if target is not None:
+                direction = side_from_bbox(target.bbox, w)
+
+            if range_cm is not None:
+                if range_cm <= variables.OBSTACLE_NEAR_CM:
+                    events.emit(f"[EVENT] obstacle {range_cm:.3f} cm {direction}")
+                elif range_cm <= variables.OBSTACLE_FAR_CM:
+                    events.emit(f"[EVENT] obstacle {range_cm:.1f} cm ahead")
+            if variables.ENABLE_FPS:
+                loop_times.append(time.time() - loop_start)
+                loop_fps = fps_from_times(loop_times)
+                det_fps  = fps_from_times(det_times)
             # ===== LIVE PREVIEW (laptop) =====
-            # Your Camera.read() returns RGB. OpenCV expects BGR for display.
             if ENABLE_DISPLAY:
-                if not render_display(frame_rgb=frame, persons=state.get('coco_dets', []), faces=faces, window_name=WINDOW_NAME):
+                if not render_display(
+                    frame_rgb=frame,
+                    persons=state.get("coco_dets", []),
+                    faces=faces,
+                    fps_det=det_fps,
+                    fps_loop=loop_fps,
+                    range_cm=state.get('range_cm'),
+                    window_name=WINDOW_NAME
+                ):
                     break
+
             # Stream to laptop
             if streamer is not None and streamer.has_clients():
-                bgr_annot = annotate_bgr(frame_rgb=frame, persons=state.get('coco_dets', []), faces=faces)  # frame is RGB
+                bgr_annot = annotate_bgr(
+                    frame_rgb=frame,
+                    persons=state.get('coco_dets', []),
+                    faces=faces,
+                    fps_det=det_fps,
+                    fps_loop=loop_fps,
+                    range_cm=state.get('range_cm'),
+                )
                 streamer.update_bgr(bgr_annot)
+            
+
+            if int(time.time()) % 2 == 0:   # print every ~2 seconds
+                print(f"[FPS] loop={loop_fps:.1f} det={det_fps:.1f}")
+
     finally:
+        grabber.stop()
         cam.close()
         if ENABLE_DISPLAY:
             cv2.destroyAllWindows()
