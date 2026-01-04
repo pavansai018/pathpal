@@ -11,6 +11,9 @@ from face_module import FaceModule
 from event_policy import EventPolicy
 import variables
 from frame_grabber import FrameGrabber
+import threading
+state_lock = threading.Lock()
+
 if variables.ENABLE_FPS:
     from collections import deque
 if variables.ENABLE_ULTRASONIC:
@@ -43,18 +46,27 @@ def main() -> None:
         'persons': []
     }
     modules: List[Module] = []
+    workers = []
+
     if variables.ENABLE_ULTRASONIC:
         modules.append(UltrasonicModule())
-    modules.extend([
-        CocoModule(COCO_MODEL, COCO_LABELS),
-        FaceModule(),
-        # Later: add new modules here (OCRModule, MotionHazardModule, etc.)
-    ])   
+
+    coco = CocoModule(COCO_MODEL, COCO_LABELS)
+    face = FaceModule()
+
+    modules.extend([coco, face])
     # modules: List[Module] = [
     #     CocoModule(COCO_MODEL, COCO_LABELS),
     #     FaceModule(),
     #     # Later: add new modules here (OCRModule, MotionHazardModule, etc.)
     # ]
+    from module_worker import ModuleWorker
+
+    coco_worker = ModuleWorker(coco, state, state_lock)
+    face_worker = ModuleWorker(face, state, state_lock)
+
+    coco_worker.start()
+    face_worker.start()
 
     events = EventPolicy(cooldown_s=2.0)
     streamer = None
@@ -72,7 +84,6 @@ def main() -> None:
     try:
         if variables.ENABLE_FPS:
             loop_times = deque(maxlen=30)
-            det_times = deque(maxlen=10)
         last_ts = 0.0
         while True:
             loop_fps = None
@@ -93,18 +104,25 @@ def main() -> None:
             now = time.time()
             state['now_ts'] = now  # useful for sensor modules
 
-            for m in modules:
-                if m.should_run(now):
-                    t0 = time.time()
-                    m.process(frame, state)
-                    m.mark_ran(now)
-                    if m.name == 'coco':
-                        det_times.append(time.time() - t0)
+            # for m in modules:
+            #     if m.should_run(now):
+            #         t0 = time.time()
+            #         m.process(frame, state)
+            #         m.mark_ran(now)
+            #         if m.name == 'coco':
+            #             det_times.append(time.time() - t0)
+            coco_worker.update_frame(frame, ts)
+            face_worker.update_frame(frame, ts)
 
             # Simple demo events
             h, w, _ = frame.shape
-            persons: List[Det] = state.get('persons', [])
-            faces: List[Det] = state.get('faces', [])
+            # persons: List[Det] = state.get('persons', [])
+            # faces: List[Det] = state.get('faces', [])
+            with state_lock:
+                persons = list(state.get('persons', []))
+                faces   = list(state.get('faces', []))
+                dets    = list(state.get('coco_dets', []))
+                range_cm = state.get('range_cm')
 
             # ---- existing person/face events (keep as-is if you want) ----
             if persons:
@@ -118,8 +136,8 @@ def main() -> None:
                 events.emit(f"[EVENT] face on {side_from_bbox(f.bbox, w)}")
 
             # ---- NEW: ultrasonic + vision fusion ----
-            range_cm = state.get('range_cm', None)
-            dets: List[Det] = state.get('coco_dets', [])
+            # range_cm = state.get('range_cm', None)
+            # dets: List[Det] = state.get('coco_dets', [])
 
             # choose which detection drives direction (controlled via variables.py)
             direction = variables.TARGET_DIRECTION
@@ -127,7 +145,7 @@ def main() -> None:
 
             if dets:
                 # 1) try priority labels in order
-                for lbl in getattr(variables, 'RANGE_DIR_PRIORIT', ['person']):
+                for lbl in getattr(variables, 'RANGE_DIR_PRIORITY', ['person']):
                     candidates = [d for d in dets if d.label == lbl]
                     if candidates:
                         target = max(
@@ -161,12 +179,14 @@ def main() -> None:
             if variables.ENABLE_FPS:
                 loop_times.append(time.time() - loop_start)
                 loop_fps = fps_from_times(loop_times)
-                det_fps  = fps_from_times(det_times)
+                det_fps = None
+                if coco_worker.infer_times:
+                    det_fps = len(coco_worker.infer_times) / sum(coco_worker.infer_times)
             # ===== LIVE PREVIEW (laptop) =====
             if ENABLE_DISPLAY:
                 if not render_display(
                     frame_rgb=frame,
-                    persons=state.get("coco_dets", []),
+                    persons=dets,
                     faces=faces,
                     fps_det=det_fps,
                     fps_loop=loop_fps,
@@ -179,7 +199,7 @@ def main() -> None:
             if streamer is not None and streamer.has_clients():
                 bgr_annot = annotate_bgr(
                     frame_rgb=frame,
-                    persons=state.get('coco_dets', []),
+                    persons=dets,
                     faces=faces,
                     fps_det=det_fps,
                     fps_loop=loop_fps,
@@ -194,6 +214,8 @@ def main() -> None:
     finally:
         grabber.stop()
         cam.close()
+        coco_worker.stop()
+        face_worker.stop()
         if ENABLE_DISPLAY:
             cv2.destroyAllWindows()
         if streamer is not None:
