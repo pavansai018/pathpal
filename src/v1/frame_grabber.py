@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 import time
 from typing import Optional
-
+import variables
 import numpy as np
 
 
@@ -14,7 +14,7 @@ class FrameGrabber:
     - Inference always runs on the freshest frame (drops old frames automatically)
     """
 
-    def __init__(self, cam, target_fps: float = 30.0, copy_frame: bool = False) -> None:
+    def __init__(self, cam, target_fps: float = variables.TARGET_FRAME_GRABBER_FPS, copy_frame: bool = variables.GRABBER_COPY_FRAME) -> None:
         self.cam = cam
         self.target_fps = float(target_fps)
         self.copy_frame = bool(copy_frame)

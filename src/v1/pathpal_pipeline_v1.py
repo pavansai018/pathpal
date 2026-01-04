@@ -34,7 +34,7 @@ def main() -> None:
     cam = Camera(size=(variables.CAM_WIDTH, variables.CAM_HEIGHT), fps=variables.FPS)
     if variables.DEBUG:
         print(f"[INFO] Camera backend: {cam.backend}")
-    grabber = FrameGrabber(cam, target_fps=variables.TARGET_FRAME_GRABBER_FPS, copy_frame=False)
+    grabber = FrameGrabber(cam, target_fps=variables.TARGET_FRAME_GRABBER_FPS, copy_frame=variables.GRABBER_COPY_FRAME)
     grabber.start()
     state: Dict[str, Any] = {
         'coco_dets': [],
@@ -89,7 +89,7 @@ def main() -> None:
                 time.sleep(0.002)
                 continue
             last_ts = ts
-            
+
             now = time.time()
             state['now_ts'] = now  # useful for sensor modules
 
