@@ -52,3 +52,38 @@ WANTED_LABELS = {
 
 # debug statements
 DEBUG = True
+
+
+# Ultrasonic Sensor
+ENABLE_ULTRASONIC = False
+TRIGGER = 4 # GPIO4
+ECHO = 17 # GPIO17
+MAX_DISTANCE = 10 # in metres
+RANGE_SMOOTH_N = 5
+TARGET_DIRECTION = 'center' # checks objects in central region of cam
+# Which labels are allowed to drive the "direction" (priority order)
+RANGE_DIR_PRIORITY = ['person']          # e.g. ["person", "bicycle", "car"]
+RANGE_DIR_FALLBACK = 'largest_any'       # "largest_any" | "center_only" | "none"
+
+OBSTACLE_NEAR_CM = 80.0
+OBSTACLE_FAR_CM  = 250.0
+'''
+If you want the direction to be based on person first, then cars, then bikes:
+
+RANGE_DIR_PRIORITY = ["person", "car", "bicycle"]
+RANGE_DIR_FALLBACK = "largest_any"
+
+
+If you never want vision to decide direction (only “ahead”):
+
+RANGE_DIR_FALLBACK = "center_only"
+RANGE_DIR_PRIORITY = []
+'''
+
+# fps stats
+ENABLE_FPS = True
+TARGET_FRAME_GRABBER_FPS = 30
+
+
+# TFLITE
+TFLITE_THREADS = 3
