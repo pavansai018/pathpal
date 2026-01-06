@@ -31,7 +31,7 @@ def main() -> None:
         cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
         cv2.resizeWindow(WINDOW_NAME, width=variables.DISPLAY_WIDTH, height=variables.DISPLAY_HEIGHT) 
     
-    COCO_MODEL = variables.EFFICIENTDET_V2_PATH
+    COCO_MODEL = variables.EFFICIENTDET_V0_PATH
     COCO_LABELS = variables.COCO_LABELS_PATH
 
     cam = Camera(size=(variables.CAM_WIDTH, variables.CAM_HEIGHT), fps=variables.FPS)
@@ -207,9 +207,11 @@ def main() -> None:
                 )
                 streamer.update_bgr(bgr_annot)
             
-
-            if int(time.time()) % 2 == 0:   # print every ~2 seconds
-                print(f"[FPS] loop={loop_fps:.1f} det={det_fps:.1f}")
+            try:
+                if int(time.time()) % 2 == 0:   # print every ~2 seconds
+                    print(f"[FPS] loop={loop_fps:.1f} det={det_fps:.1f}")
+            except Exception as e:
+                pass
 
     finally:
         grabber.stop()

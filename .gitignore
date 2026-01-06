@@ -6,3 +6,4 @@ src/face_detection_cv2.py
 src/face_detection_v3.py
 src/fd.py
 src/object_face_sound.py
+details.txt
